@@ -3,7 +3,7 @@ from json import JSONDecodeError
 import aiohttp
 import requests
 
-from db.classes import Problem
+from db.models import Problem
 
 
 class APIError(Exception):
@@ -12,12 +12,11 @@ class APIError(Exception):
 
 class APIresponse:
     """   """
-
-    def check_connection(self) -> int:
-        """функция для проверки статус-кода при работе с API"""
-        response = requests.get('https://codeforces.com/api/problemset.problems?tags=implementation')
-        print(response.status_code)
-        return response.status_code
+    # def check_connection(self) -> int:
+    #     """функция для проверки статус-кода при работе с API"""
+    #     response = requests.get('https://codeforces.com/api/problemset.problems?tags=implementation')
+    #     print(response.status_code)
+    #     return response.status_code
 
     def _handle_response(self, api_response):
         print(api_response.status_code)
@@ -25,13 +24,12 @@ class APIresponse:
             raise APIError
         try:
             json_response = api_response.json()
-            print(type(json_response))
-            print(json_response['status'])
+            # print(type(json_response))
+            # print(json_response['status'])
             # print(json_response['result']['problems'][110])
             # print(json_response['result']['problemStatistics'][110])
-
-            return api_response.json()
-            # return Problem().class_init_handler(json_response)
+            # return api_response.json()
+            return Problem.problem_init_handler(json_response)
         except JSONDecodeError:
             raise APIError
 
@@ -46,12 +44,9 @@ class APIresponse:
     #     # data.extend(raw_data['items'])
     #    return data
 
-    def get_problems(self):
-        """обращается к API и выгружает список вакансии согласно запросу search_query"""
-        # data = []
-        api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
+    def get_problems(self, api_url):
+        """обращается к API и проводит результат запроса через обработчик _handle_response"""
         api_response = requests.get(api_url)
-        # with requests.get(api_url) as api_response:
         return self._handle_response(api_response)
 
 

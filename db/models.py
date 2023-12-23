@@ -137,7 +137,7 @@ class Contest(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(300))
     # rating: Mapped[Optional[int]]
-    # tags: Mapped[List['Tag']] = relationship(secondary=association_table, back_populates='problems')
+    # tag: Mapped[List['Tag']] = relationship(secondary=association_table, back_populates='problems')
     problems: Mapped[List['Problem']] = relationship(back_populates='contest')
 
     # def __init__(self, rating, tags, search_code, solvedCount):

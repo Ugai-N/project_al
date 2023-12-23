@@ -41,3 +41,6 @@ def get_solvedCount(statistics_list, contestId, index):
                 return st['solvedCount']
         continue
     return 0
+
+
+

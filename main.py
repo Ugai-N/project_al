@@ -1,13 +1,15 @@
 import requests
-from sqlalchemy import create_engine, text, select
+from sqlalchemy import create_engine, text, select, func
 from sqlalchemy.dialects.postgresql import psycopg2
 
 from API.API_manager import APIresponse
 from db import models
 from db.db_settings import engine, SessionLocal
 from db.models import Base, Problem, Tag
+from services import perform_contest_split
 
 from utils import get_from_file, save_to_file
+
 api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
 
 
@@ -104,27 +106,46 @@ api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
 
 
 # вытаскиваем данные из файла
-results = get_from_file('test_one.json')
+results = get_from_file('test_data.json')
 # print('uploaded json file via API request')
 
 #create all tables for models
 Base.metadata.create_all(bind=engine)
 print('created tables in DB')
+# print(Problem.__mapper__.tables)
 
 # открываем сессию с БД
 with SessionLocal() as db:
     # потрошим список проблем внутри класс-метода class_init_handler, запоминаем в список list_to_add
-    list_to_add = Problem.problem_init_handler(db, results)
+    # list_to_add = Problem.problem_init_handler(db, results)
 
-    pr = db.query(Problem).all()
-    for p in pr:
-        print(f'{p.name} - {p.tags}')
+    # pr = db.query(Problem).all()
+    # for p in pr:
+    #     print(f'{p.name} - {p.tags}')
+    #
+    #
+    # tags = db.query(Tag).all()
+    # for t in tags:
+    #     print(f'{t.name} - {t.problems}')
+    #
+    # stmt = (select(Problem).join(Problem.tags).where(Tag.name == 'tag1'))
+    # req = db.scalars(stmt).all().count
+    # print(req)
+    #
+    # #splt for contests:
+    perform_contest_split(db)
+    # db.query(Problem).order_by(Problem.rating)
 
 
-    tags = db.query(Tag).all()
-    for t in tags:
-        print(f'{t.name} - {t.problems}')
-
-    stmt = (select(Problem).join(Problem.tags).where(Tag.name == 'tag1'))
-    req = db.scalars(stmt).all()
-    print(req)
+    # stmt = (select(func.max(Problem.rating)))
+    # req = db.scalars(stmt).first()
+    # print(req) #3500
+    #
+    # result = db.execute(text("SELECT rating FROM problems where rating > 1 ORDER BY rating DESC limit 1"))
+    # print(result.scalars().first()) #3500
+    #
+    # all_pr = db.query(Problem).filter(Problem.rating > 1).order_by(Problem.rating.desc()).first()
+    # print(all_pr.rating) #3500
+    #
+    # all_pr = db.scalar(select(Problem).where(Problem.rating > 1).order_by(Problem.rating.desc()))
+    # print(all_pr.rating) #3500

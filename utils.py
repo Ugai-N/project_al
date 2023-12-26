@@ -2,7 +2,6 @@ import json
 import os
 
 
-
 def get_from_file(file) -> list:
 
     """Возвращает список из указанного json файла"""

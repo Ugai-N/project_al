@@ -1,20 +1,81 @@
-import requests
-from sqlalchemy import create_engine, text, select, func
-from sqlalchemy.dialects.postgresql import psycopg2
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from API.API_manager import APIresponse
-from db import models
 from db.db_settings import engine, SessionLocal
-from db.models import Base, Problem, Tag
-from services import perform_contest_split
+from models import Base, Problem, Tag, ProblemTagAssociation
 
-from utils import get_from_file, save_to_file
+from utils import get_from_file, save_to_file, get_solvedCount
 
 api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
 
 
+def create_problem(db, name: str, search_code: str, rating: int, solvedCount: int, tags):
+    new_problem = Problem(
+        name=name,
+        search_code=search_code,
+        rating=rating,
+        solvedCount=solvedCount,
+        tags=tags
+    )
+    db.add(new_problem)
+    db.commit()
+    print(f'--->>> added problem to DB: {new_problem}')
+    return new_problem
+
+
+def parser_handler(db, json_response):
+    problems = json_response['result']['problems']
+    statistics = json_response['result']['problemStatistics']
+
+    # check every Problem in a list, form 'search_code', form 'solvedCount' -> initialize instance Problem
+    for p in problems:  # contestId, index, name, rating, tags, solvedCount
+        search_code = '-'.join([str(p['contestId']), p['index']])
+        solvedCount = get_solvedCount(statistics, p['contestId'], p['index'])
+        tags_after_assoc = [ProblemTagAssociation(tag=t) for t in attach_tag(db, p['tags'])]
+
+        new_problem = create_problem(
+            db,
+            name=p.get('name'),
+            search_code=search_code,
+            rating=p.get('rating'),
+            solvedCount=solvedCount,
+            tags=tags_after_assoc
+        )
+        # attach_tag(db, new_problem, p['tags'])
+        return new_problem
+
+
+def create_tag(db, name: str):
+    new_tag = Tag(name=name)
+    db.add(new_tag)
+    db.commit()
+    print(f'--->>> added tag to DB: {new_tag}')
+    return new_tag
+
+
+def attach_tag(db, tags: list):
+    tag_instances_to_attach = []
+    for item in tags:
+        """Check every tag for a particular Problem: if no such tag in DB yet -> add to DB 
+        + return to Problem as a foreign key"""
+        if db.query(Tag).filter(Tag.name == item).count() == 0:
+            tag_to_attach = create_tag(db, name=item)
+        else:
+            """if such tag exsts in DB -> return to Problem as a foreign key"""
+            tag_to_attach = db.query(Tag).filter(Tag.name == item).first()
+        # problem.tags.append(ProblemTagAssociation(tag=tag_to_attach))
+        # problem_tag_association = ProblemTagAssociation(tag=tag_to_attach)
+        # db.add(problem_tag_association)
+        tag_instances_to_attach.append(tag_to_attach)
+    # db.commit()
+    # return problem
+    return list(set(tag_instances_to_attach))
+
+
 # a = APIresponse()
 # a.get_problems(api_url)
+
 # print(len(Problem.problems_list))
 # print(Problem.problems_list[35].search_code)
 # print(Problem.problems_list[35].solvedCount)
@@ -53,77 +114,39 @@ api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
 # print(sorted(ratings_set))
 
 
-# 37
-# {'data structures', 'sortings', 'dsu', 'expression parsing', 'games', 'matrices', 'chinese remainder theorem', 'meet-in-the-middle', 'flows', 'brute force', '2-sat', 'schedules', 'number theory', 'binary search', 'implementation', 'hashing', 'geometry', 'trees', 'graph matchings', 'string suffix structures', 'dfs and similar', 'divide and conquer', '*special', 'interactive', 'dp', 'shortest paths', 'graphs', 'probabilities', 'greedy', 'bitmasks', 'constructive algorithms', 'strings', 'math', 'two pointers', 'ternary search', 'combinatorics', 'fft'}
-# 29
-# [0, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500]
-
-#for DB:
-# models.Base.metadata.create_all(bind=engine)
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
-
-# так устанавливаем подключение к БД
-# with engine.connect() as connection:
-#     result = connection.execute(text("select * from main_student"))
-#     # print(result.all()) # выдает список кортежей
-#     print(result.scalars().all()) #очищает от кортежей
-#     # for i in result:
-#     #     print(i)
-
-
-# from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
-# engine = create_engine(f'postgresql://postgres:SyncMaster11@localhost:5432/ffffffffff', echo = True)
-# meta = MetaData()
-
-#создаем пустую таблицу в имеющесйя БД
-# students = Table(
-#    'students', meta,
-#    Column('id', Integer, primary_key = True),
-#    Column('name', String),
-#    Column('lastname', String),
-# )
-# meta.create_all(engine)
-
-#create table
+# create table
 # Base.metadata.create_all(bind=engine)
 # print('created')
 
-# создаем сессию подключения к бд
-# with SessionLocal(autoflush=False, bind=engine) as db:
-#     # создаем объект Person для добавления в бд
-#     obj = DB_problem_class(name="pro1", rating=38, tags='tagstags', search_code='seeeearch', solvedCount=123)
-#     db.add(obj)     # добавляем в бд   или db.add_all([obj1, obj2])
-#     db.commit()     # сохраняем изменения
-#     print(obj.problem_id)   # можно получить установленный id
-# print(len(DB_problem_class.problems_list))
-# print(DB_problem_class.problems_list)
-# print(DB_problem_class.problems_list[0].search_code)
-
 
 # вытаскиваем данные из файла
-results = get_from_file('test_data.json')
-# print('uploaded json file via API request')
+def main():
+    results = get_from_file('test_data.json')
+    print('--->>> uploaded json file via API request')
 
-#create all tables for models
-Base.metadata.create_all(bind=engine)
-print('created tables in DB')
-# print(Problem.__mapper__.tables)
+    # create all tables for models
+    Base.metadata.create_all(bind=engine)
+    print('--->>> created tables in DB')
 
-# открываем сессию с БД
-with SessionLocal() as db:
-    # потрошим список проблем внутри класс-метода class_init_handler, запоминаем в список list_to_add
-    # list_to_add = Problem.problem_init_handler(db, results)
+    # открываем сессию с БД
+    with SessionLocal() as db:
+        parser_handler(db, results)
 
+
+
+if __name__ == '__main__':
+    main()
+
+    # # pr = db.query(Problem).filter(Problem.id >= 2544).all()
     # pr = db.query(Problem).all()
     # for p in pr:
-    #     print(f'{p.name} - {p.tags}')
-    #
-    #
+    #     print(f'{p.name} - {p.tags} - {p.contest_id}')
+    # # con = db.query(Tag).filter(Tag.id >= 38).all()
+    # con = db.query(Tag).all()
+    # for c in con:
+    #     print(f'{c.name} - {c.contests}')
+    # #
+    # #
     # tags = db.query(Tag).all()
     # for t in tags:
     #     print(f'{t.name} - {t.problems}')
@@ -133,19 +156,6 @@ with SessionLocal() as db:
     # print(req)
     #
     # #splt for contests:
-    perform_contest_split(db)
+    # perform_contest_split(db)
     # db.query(Problem).order_by(Problem.rating)
-
-
-    # stmt = (select(func.max(Problem.rating)))
-    # req = db.scalars(stmt).first()
-    # print(req) #3500
-    #
-    # result = db.execute(text("SELECT rating FROM problems where rating > 1 ORDER BY rating DESC limit 1"))
-    # print(result.scalars().first()) #3500
-    #
-    # all_pr = db.query(Problem).filter(Problem.rating > 1).order_by(Problem.rating.desc()).first()
-    # print(all_pr.rating) #3500
-    #
-    # all_pr = db.scalar(select(Problem).where(Problem.rating > 1).order_by(Problem.rating.desc()))
-    # print(all_pr.rating) #3500
+    # db.refresh(Contest)

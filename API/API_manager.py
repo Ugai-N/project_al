@@ -3,8 +3,6 @@ from json import JSONDecodeError
 import aiohttp
 import requests
 
-from db.models import Problem
-
 
 class APIError(Exception):
     pass
@@ -28,8 +26,8 @@ class APIresponse:
             # print(json_response['status'])
             # print(json_response['result']['problems'][110])
             # print(json_response['result']['problemStatistics'][110])
-            # return api_response.json()
-            return Problem.problem_init_handler(json_response)
+            return api_response.json()
+            # return Problem.problem_init_handler(json_response)
         except JSONDecodeError:
             raise APIError
 

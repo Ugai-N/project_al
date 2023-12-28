@@ -14,7 +14,6 @@ class Tag(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
-    # problems: Mapped[List['Problem']] = relationship(secondary='problem_tag_association', back_populates='tags')
     problems: Mapped[List['ProblemTagAssociation']] = relationship(back_populates='tag')
     contests: Mapped[List['Contest']] = relationship(back_populates="tag")
 

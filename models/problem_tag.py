@@ -23,10 +23,10 @@ class ProblemTagAssociation(Base):
     problem_id: Mapped[int] = mapped_column(ForeignKey('problems.id'))
     tag_id: Mapped[int] = mapped_column(ForeignKey('tags.id'))
 
-    #association between ProblemTagAssociation -> Problem
+    # association between ProblemTagAssociation -> Problem
     problem: Mapped['Problem'] = relationship(back_populates='tags')
 
-    #association between ProblemTagAssociation -> Tag
+    # association between ProblemTagAssociation -> Tag
     tag: Mapped['Tag'] = relationship(back_populates='problems')
 
     def __repr__(self):

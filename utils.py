@@ -3,23 +3,22 @@ import os
 
 
 def get_from_file(file) -> list:
-
-    """Возвращает список из указанного json файла"""
+    """returns the list results from json-file"""
     with open(file, 'r', encoding='utf-8') as f:
         filelist = json.load(f)
         return filelist
 
 
 def save_to_file(file, results):
-    """Сохраняет/добавляет в файл json значения"""
+    """saves/adds the data into json-file"""
     results_list = []
     for r in results:
         data = {"id": r.search_code,
-                    "имя": r.name,
-                    "сложность": r.rating,
-                    "теги": r.tags,
-                "решения":r.solvedCount
-                    }
+                "имя": r.name,
+                "сложность": r.rating,
+                "теги": r.tags,
+                "решения": r.solvedCount
+                }
         results_list.append(data)
 
     with open(file, 'a', encoding='utf-8') as f:
@@ -34,13 +33,11 @@ def save_to_file(file, results):
 
 
 def get_solvedCount(statistics_list, contestId, index):
+    """checks the json-file and gets the attribute 'solvedCount' for a Problem if it exists,
+    otherwise returns 0"""
     for st in statistics_list:
         if st['contestId'] == contestId:
             if st['index'] == index:
                 return st['solvedCount']
         continue
     return 0
-
-
-
-

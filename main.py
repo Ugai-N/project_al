@@ -7,10 +7,12 @@ from models import Base, Problem, Tag, ProblemTagAssociation, Contest
 
 from utils import get_from_file, save_to_file, get_solvedCount
 
+# --> вынести в конфиги и env
 api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
 
 
-def search_problem_by_search_code(db, search_code):
+def search_problem_by_search_code(db, search_code: str) -> Problem | None:
+    """search a problem in DB"""
     stmt = (
         select(Problem)
         .filter(Problem.search_code == search_code)
@@ -19,19 +21,25 @@ def search_problem_by_search_code(db, search_code):
     return problem
 
 
-def parser_handler(db, json_response):
+def parser_handler(db, json_response) -> None:
+    """initiates update:
+    checking every row in json,
+    getting the problem attrs,
+    if problem exists in DB -> updates qty of times the problem was solved,
+    if problem does not exist -> creates a new problem in DB -> initiates attachment to the contest"""
+
     problems = json_response['result']['problems']
     statistics = json_response['result']['problemStatistics']
 
-    # check every Problem in a list, form 'search_code', form 'solvedCount' -> initialize instance Problem
-    for p in problems:  # contestId, index, name, rating, tags, solvedCount
-        search_code = '-'.join([str(p['contestId']), p['index']])
-        solvedCount = get_solvedCount(statistics, p['contestId'], p['index'])
-        problem_from_db = search_problem_by_search_code(db, search_code)
+    for p in problems:
+        search_code: str = '-'.join([str(p['contestId']), p['index']])
+        solvedCount: int = get_solvedCount(statistics, p['contestId'], p['index'])
+        problem_from_db: Problem | None = search_problem_by_search_code(db, search_code)
+
         if problem_from_db is None:
             print('\n\n--->>> Problem NOT FOUND. Creating a new one ...')
-            tags_after_assoc = [ProblemTagAssociation(tag=t) for t in attach_tag(db, p['tags'])]
-            new_problem = create_problem(
+            tags_after_assoc: list = [ProblemTagAssociation(tag=t) for t in get_tags_to_attach(db, p['tags'])]
+            new_problem: Problem = create_problem(
                 db,
                 name=p.get('name'),
                 search_code=search_code,
@@ -39,15 +47,17 @@ def parser_handler(db, json_response):
                 solvedCount=solvedCount,
                 tags=tags_after_assoc
             )
-            # attach_tag(db, new_problem, p['tags'])
-            handle_contest(db, new_problem)
+            """ initiates the problem attachment to the contest """
+            choose_tag_for_contest(db, new_problem)
         else:
+            """ if the problem exists in DB -> update 'solvedCount' """
             print(f'\n\n--->>> Found problem "{problem_from_db}". Updating ...')
             problem_from_db.solvedCount = solvedCount
             db.commit()
 
 
-def create_problem(db, name: str, search_code: str, rating: int, solvedCount: int, tags):
+def create_problem(db, name: str, search_code: str, rating: int, solvedCount: int, tags: list) -> Problem:
+    """creates a new problem in DB"""
     new_problem = Problem(
         name=name,
         search_code=search_code,
@@ -61,7 +71,8 @@ def create_problem(db, name: str, search_code: str, rating: int, solvedCount: in
     return new_problem
 
 
-def create_tag(db, name: str):
+def create_tag(db, name: str) -> Tag:
+    """creates a new Tag in DB"""
     new_tag = Tag(name=name)
     db.add(new_tag)
     db.commit()
@@ -69,33 +80,31 @@ def create_tag(db, name: str):
     return new_tag
 
 
-def attach_tag(db, tags: list):
+def get_tags_to_attach(db, tags: list) -> list:
+    """check every tag for a particular Problem: if no such tag in DB yet -> add new tag to DB.
+    Returns a list of Tag instances to the Problem"""
     tag_instances_to_attach = []
     for item in tags:
-        """Check every tag for a particular Problem: if no such tag in DB yet -> add to DB 
-        + return to Problem as a foreign key"""
+        """if no such tag in DB yet -> add to DB"""
         if db.query(Tag).filter(Tag.name == item).count() == 0:
             tag_to_attach = create_tag(db, name=item)
         else:
-            """if such tag exsts in DB -> return to Problem as a foreign key"""
+            """if such tag exists in DB -> return to Problem"""
             tag_to_attach = db.query(Tag).filter(Tag.name == item).first()
-        # problem.tags.append(ProblemTagAssociation(tag=tag_to_attach))
-        # problem_tag_association = ProblemTagAssociation(tag=tag_to_attach)
-        # db.add(problem_tag_association)
         tag_instances_to_attach.append(tag_to_attach)
-    # db.commit()
-    # return problem
     return list(set(tag_instances_to_attach))
 
 
-def get_rating_group(db, pro_rating):
+def get_rating_group(db, pro_rating: int) -> str:
+    """Basing on the rating of a Problem -> forms a rating level, which is used when grouping problems into contests
+    Problem rating starts from 800 (unless is null(0)) and is usually divisible by 100 (800/900/1000 etc).
+    Problems are grouped in contests by rating level step of 300 (e.g. 800-1099, 1100-1399 etc)"""
     if pro_rating is None or pro_rating < 800:
         pro_rating_level = 'N/A'
     else:
         # min_rating = db.query(Problem).filter(Problem.rating > 1).order_by(Problem.rating.asc()).first().rating
         rating_level = 800
         while True:
-            # print(f'from {rating_level} to {rating_level + 299}')
             if rating_level <= pro_rating <= rating_level + 300:
                 pro_rating_level = f'{rating_level} - {rating_level + 300 - 1}'
                 break
@@ -103,19 +112,20 @@ def get_rating_group(db, pro_rating):
                 rating_level += 300
     return pro_rating_level
 
-def handle_contest(db, db_problem):
+
+def choose_tag_for_contest(db, db_problem: Problem) -> None:
+    """Choosing the tag for contest before attaching Problem to contest"""
     chosen_tag = None
     if db_problem.contest_id is None:
-    # если таг один
         if len(db_problem.tags) == 1:
-            # print(f'*******************{db_problem.tags[0]}')
+            """if Problem has only 1 tag - this tag is used for attaching to the contest"""
             chosen_tag = db_problem.tags[0]
             print(f'***** only one tag: tag {chosen_tag.tag.name}')
-    #если таг не один
         else:
-            #check popularity of ech tag in problem.tags
+            """if Problem has more than 1 tag -> less popular tag is chosen 
+            (basing of the number of times every tag is mentioned in problems)"""
             min_tag_problems = 10000000000000000000000000000000000000000
-            for tag_association in db_problem.tags:  # type: ProblemTagAssociation
+            for tag_association in db_problem.tags:    # type: ProblemTagAssociation
                 stmt = (
                     select(Problem)
                     .join(ProblemTagAssociation.problem)
@@ -130,15 +140,17 @@ def handle_contest(db, db_problem):
                     min_tag_problems = pros_with_tag_qty
                     chosen_tag = tag_association
             print(f'***** tag {chosen_tag.tag.name} was chosen for contest')
-                # print(f'tag {tag_association.tag} has {pros_qty} pros:')
-                # for pr in pros_with_tag:
-                #     print(f'[+] {pr.name}({pr.id})')
+        """attaching the problem to the contest with the chosen tag"""
         add_problem_to_contest(db, db_problem, chosen_tag)
-    return chosen_tag
+    # return chosen_tag
 
-    # десь еще бы разбить по группам рейтинга?
 
-def add_problem_to_contest(db, db_problem, tag_assoc): #tag not list, 1 instance of Problem_tag_association
+def add_problem_to_contest(db, db_problem: Problem, tag_assoc: ProblemTagAssociation) -> Contest:
+    """choosing the contest for a problem:
+    -> find all contests with appropriate rating level and chosen tag
+    -> filter contests which are not filled yet (<10)
+    -> if such exists -> attach problem to the first found contest
+    -> if such contest does not exist -> create new contest -> attach problem to it"""
     db_problem_rating_level = get_rating_group(db, db_problem.rating)
     stmt = (
         select(Contest)
@@ -153,7 +165,7 @@ def add_problem_to_contest(db, db_problem, tag_assoc): #tag not list, 1 instance
         if len([pro for pro in con.problems]) < 10:
             all_available_contests.append(con)
     if len(all_available_contests) != 0:
-        active_contest = all_available_contests[0] #or random
+        active_contest = all_available_contests[0]    # or random
         print(f'***** problem {db_problem} added to existing contest')
     else:
         active_contest = create_contest(db, db_problem, tag_assoc, len(all_matching_contests))
@@ -164,7 +176,8 @@ def add_problem_to_contest(db, db_problem, tag_assoc): #tag not list, 1 instance
     return active_contest
 
 
-def create_contest(db, db_problem, tag_assoc, prev_contest_count):
+def create_contest(db, db_problem: Problem, tag_assoc: ProblemTagAssociation, prev_contest_count: int) -> Contest:
+    """creating a new contest. Name contains the number of the contest for the same rating level and tag"""
     db_problem_rating_level = get_rating_group(db, db_problem.rating)
     new_contest = Contest(
         name=f'{tag_assoc.tag.name} ({db_problem_rating_level}) - #{prev_contest_count + 1}',
@@ -177,79 +190,42 @@ def create_contest(db, db_problem, tag_assoc, prev_contest_count):
     return new_contest
 
 
-# a = APIresponse()
-# a.get_problems(api_url)
-
-# print(len(Problem.problems_list))
-# print(Problem.problems_list[35].search_code)
-# print(Problem.problems_list[35].solvedCount)
-
-
-# тестирование из файла а не из АПИ
-# results = get_from_file('test_data.json')
-#
-# Problem.class_init_handler(results)
-# results = Problem.problems_list
-# save_to_file('new_db_file.json', results)
-# print(len(Problem.problems_list))
-# print(len(results))
-# no_solved = []
-# for i in results:
-#     if not i.solvedCount:
-#         no_solved.append(i)
-# print(len(no_solved))
-
-
-# сколько всего тегов и рейтингов
-# results = get_from_file('test_data.json')
-#
-# Problem.class_init_handler(results)
-# results = Problem.problems_list
-# tags_list = []
-# ratings_list = []
-# for i in results:
-#     tags_list += i.tags
-#     ratings_list.append(i.rating if i.rating != None else 0)
-# tags_set = set(tags_list)
-# ratings_set = set(ratings_list)
-# print(len(tags_set))
-# print(tags_set)
-# print(len(ratings_set))
-# print(sorted(ratings_set))
-
-
-# create table
-# Base.metadata.create_all(bind=engine)
-# print('created')
-
-
-# вытаскиваем данные из файла
 def main():
-    results = get_from_file('test_one.json')
+    # --> get json file from API or from file:
+
+    # results = APIresponse().get_problems(api_url)
+    # save_to_file('new_db_file.json', results)
+    results = get_from_file('test_data.json')
     print('--->>> uploaded json file via API request')
 
-    # create all tables for models
+    # --> create all tables for models (not needed as tables are created by migrations)
     # Base.metadata.create_all(bind=engine)
     # print('--->>> created tables in DB')
 
-    # открываем сессию с БД
+    # --> open DB session
     with SessionLocal() as db:
-        # print(results)
-        # parser_handler(db, results)
-        # pr = search_problem_by_search_code(db, '22222-B')
-        # pr = search_problem_by_search_code(db, '33333333333-A')
-        # print(pr)
 
-        # parser_handler(db, results)
-        Problem().test_methond('dddd')
+        # --> launch update of DB
+        parser_handler(db, results)
 
+        # --> check how many contests are ready and how many tags are available
+        # stmt = (
+        #     select(Contest)
+        #     .options(
+        #         selectinload(Contest.problems),
+        #     )
+        #     .order_by(Contest.id)
+        # )
+        # all_contests_with_problems = list(db.scalars(stmt))
+        # full_contests = []
+        # for con in all_contests_with_problems:
+        #     if len([pro for pro in con.problems]) == 10:
+        #         full_contests.append(con)
+        # print(f'qty of ready contests: {len(full_contests)}')
+        # full_contest_tags = [i.tag for i in full_contests]
+        # print(f'qty of available tags of ready contests: {len(set(full_contest_tags))}')
 
-        # # pro = db.query(Problem).filter(Problem.id == 7).first() --> равнозначно строчке ниже
-        # pro = db.scalar(select(Problem).where(Problem.id == 2534))   # type: Problem
-        # handle_contest(db, pro)
-
-
-###--> посмотреть сколько и какие задачи в контестах
+# --> check how many and what problems are in every contest
         # stmt = (
         #     select(Contest)
         #     .options(
@@ -263,32 +239,13 @@ def main():
         #     for pr in con.problems:
         #         print(f'@{pr}')
 
+# --> черновое - УДАЛИТЬ
+        # Problem().test_methond('dddd')
 
-
+        # # pro = db.query(Problem).filter(Problem.id == 7).first() --> равнозначно строчке ниже
+        # pro = db.scalar(select(Problem).where(Problem.id == 2534))   # type: Problem
+        # handle_contest(db, pro)
 
 
 if __name__ == '__main__':
     main()
-
-    # # pr = db.query(Problem).filter(Problem.id >= 2544).all()
-    # pr = db.query(Problem).all()
-    # for p in pr:
-    #     print(f'{p.name} - {p.tags} - {p.contest_id}')
-    # # con = db.query(Tag).filter(Tag.id >= 38).all()
-    # con = db.query(Tag).all()
-    # for c in con:
-    #     print(f'{c.name} - {c.contests}')
-    # #
-    # #
-    # tags = db.query(Tag).all()
-    # for t in tags:
-    #     print(f'{t.name} - {t.problems}')
-    #
-    # stmt = (select(Problem).join(Problem.tags).where(Tag.name == 'tag1'))
-    # req = db.scalars(stmt).all().count
-    # print(req)
-    #
-    # #splt for contests:
-    # perform_contest_split(db)
-    # db.query(Problem).order_by(Problem.rating)
-    # db.refresh(Contest)

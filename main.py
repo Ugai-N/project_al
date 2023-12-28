@@ -10,18 +10,13 @@ from utils import get_from_file, save_to_file, get_solvedCount
 api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
 
 
-def create_problem(db, name: str, search_code: str, rating: int, solvedCount: int, tags):
-    new_problem = Problem(
-        name=name,
-        search_code=search_code,
-        rating=rating,
-        solvedCount=solvedCount,
-        tags=tags
+def search_problem_by_search_code(db, search_code):
+    stmt = (
+        select(Problem)
+        .filter(Problem.search_code == search_code)
     )
-    db.add(new_problem)
-    db.commit()
-    print(f'\n\n--->>> added problem to DB: {new_problem}')
-    return new_problem
+    problem: Problem | None = db.execute(stmt).scalar_one_or_none()
+    return problem
 
 
 def parser_handler(db, json_response):
@@ -32,19 +27,38 @@ def parser_handler(db, json_response):
     for p in problems:  # contestId, index, name, rating, tags, solvedCount
         search_code = '-'.join([str(p['contestId']), p['index']])
         solvedCount = get_solvedCount(statistics, p['contestId'], p['index'])
-        tags_after_assoc = [ProblemTagAssociation(tag=t) for t in attach_tag(db, p['tags'])]
-        new_problem = create_problem(
-            db,
-            name=p.get('name'),
-            search_code=search_code,
-            rating=p.get('rating') if p.get('rating') is not None else 0,
-            solvedCount=solvedCount,
-            tags=tags_after_assoc
-        )
-        # attach_tag(db, new_problem, p['tags'])
-        handle_contest(db, new_problem)
+        problem_from_db = search_problem_by_search_code(db, search_code)
+        if problem_from_db is None:
+            print('\n\n--->>> Problem NOT FOUND. Creating a new one ...')
+            tags_after_assoc = [ProblemTagAssociation(tag=t) for t in attach_tag(db, p['tags'])]
+            new_problem = create_problem(
+                db,
+                name=p.get('name'),
+                search_code=search_code,
+                rating=p.get('rating') if p.get('rating') is not None else 0,
+                solvedCount=solvedCount,
+                tags=tags_after_assoc
+            )
+            # attach_tag(db, new_problem, p['tags'])
+            handle_contest(db, new_problem)
+        else:
+            print(f'\n\n--->>> Found problem "{problem_from_db}". Updating ...')
+            problem_from_db.solvedCount = solvedCount
+            db.commit()
 
 
+def create_problem(db, name: str, search_code: str, rating: int, solvedCount: int, tags):
+    new_problem = Problem(
+        name=name,
+        search_code=search_code,
+        rating=rating,
+        solvedCount=solvedCount,
+        tags=tags
+    )
+    db.add(new_problem)
+    db.commit()
+    print(f'\n--->>> added problem to DB: {new_problem}')
+    return new_problem
 
 
 def create_tag(db, name: str):
@@ -221,7 +235,13 @@ def main():
     # открываем сессию с БД
     with SessionLocal() as db:
         # print(results)
-        parser_handler(db, results)
+        # parser_handler(db, results)
+        # pr = search_problem_by_search_code(db, '22222-B')
+        # pr = search_problem_by_search_code(db, '33333333333-A')
+        # print(pr)
+
+        # parser_handler(db, results)
+        Problem().test_methond('dddd')
 
 
         # # pro = db.query(Problem).filter(Problem.id == 7).first() --> равнозначно строчке ниже

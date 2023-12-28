@@ -25,3 +25,7 @@ class Problem(Base):
 
     def __repr__(self):
         return f'{self.name} ({self.search_code})'
+
+    # @classmethod
+    # def test_methond(cls, test):
+    #     print(test)

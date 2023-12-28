@@ -8,7 +8,7 @@ from models import Base, Problem, Tag, ProblemTagAssociation, Contest
 from utils import get_from_file, save_to_file, get_solvedCount
 
 # --> вынести в конфиги и env
-api_url = 'https://codeforces.com/api/problemset.problems?tags=implementation'
+api_url = 'https://codeforces.com/api/problemset.problems'
 
 
 def search_problem_by_search_code(db, search_code: str) -> Problem | None:
@@ -34,6 +34,7 @@ def parser_handler(db, json_response) -> None:
     for p in problems:
         search_code: str = '-'.join([str(p['contestId']), p['index']])
         solvedCount: int = get_solvedCount(statistics, p['contestId'], p['index'])
+        # tags_list = p['tags']
         problem_from_db: Problem | None = search_problem_by_search_code(db, search_code)
 
         if problem_from_db is None:
@@ -53,6 +54,7 @@ def parser_handler(db, json_response) -> None:
             """ if the problem exists in DB -> update 'solvedCount' """
             print(f'\n\n--->>> Found problem "{problem_from_db}". Updating ...')
             problem_from_db.solvedCount = solvedCount
+            problem_from_db.name = p.get('name')
             db.commit()
 
 
@@ -116,7 +118,7 @@ def get_rating_group(db, pro_rating: int) -> str:
 def choose_tag_for_contest(db, db_problem: Problem) -> None:
     """Choosing the tag for contest before attaching Problem to contest"""
     chosen_tag = None
-    if db_problem.contest_id is None:
+    if db_problem.contest_id is None and len(db_problem.tags) != 0:
         if len(db_problem.tags) == 1:
             """if Problem has only 1 tag - this tag is used for attaching to the contest"""
             chosen_tag = db_problem.tags[0]
@@ -193,9 +195,9 @@ def create_contest(db, db_problem: Problem, tag_assoc: ProblemTagAssociation, pr
 def main():
     # --> get json file from API or from file:
 
-    # results = APIresponse().get_problems(api_url)
+    results = APIresponse().get_problems(api_url)
     # save_to_file('new_db_file.json', results)
-    results = get_from_file('test_data.json')
+    # results = get_from_file('test_data.json')
     print('--->>> uploaded json file via API request')
 
     # --> create all tables for models (not needed as tables are created by migrations)
@@ -208,22 +210,28 @@ def main():
         # --> launch update of DB
         parser_handler(db, results)
 
-        # --> check how many contests are ready and how many tags are available
-        # stmt = (
-        #     select(Contest)
-        #     .options(
-        #         selectinload(Contest.problems),
-        #     )
-        #     .order_by(Contest.id)
-        # )
-        # all_contests_with_problems = list(db.scalars(stmt))
-        # full_contests = []
-        # for con in all_contests_with_problems:
-        #     if len([pro for pro in con.problems]) == 10:
-        #         full_contests.append(con)
-        # print(f'qty of ready contests: {len(full_contests)}')
-        # full_contest_tags = [i.tag for i in full_contests]
-        # print(f'qty of available tags of ready contests: {len(set(full_contest_tags))}')
+
+        # --> check how many contests are ready + how many tags are available + how many problems are in DB
+        stmt = (
+            select(Contest)
+            .options(
+                selectinload(Contest.problems),
+            )
+            .order_by(Contest.id)
+        )
+        all_contests_with_problems = list(db.scalars(stmt))
+        full_contests = []
+        for con in all_contests_with_problems:
+            if len([pro for pro in con.problems]) == 10:
+                full_contests.append(con)
+        print(f'qty of ready contests: {len(full_contests)}')
+        full_contest_tags = [i.tag for i in full_contests]
+        print(f'qty of available tags of ready contests: {len(set(full_contest_tags))}')
+        stmt = (
+            select(Problem)
+        )
+        all_problems = list(db.scalars(stmt))
+        print(f'qty of problems in DB: {len(all_problems)}')
 
 # --> check how many and what problems are in every contest
         # stmt = (

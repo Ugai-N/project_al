@@ -28,3 +28,8 @@ class ProblemTagAssociation(Base):
 
     #association between ProblemTagAssociation -> Tag
     tag: Mapped['Tag'] = relationship(back_populates='problems')
+
+    def __repr__(self):
+        return f'{self.__class__} (id:{self.id})\n' \
+               f'problem_id:{self.problem_id} -> problem:{self.problem}\n' \
+               f'tag_id:{self.tag_id} -> tag:{self.tag_id}\n'

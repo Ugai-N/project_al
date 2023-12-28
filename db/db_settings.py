@@ -11,6 +11,6 @@ SQALCHEMY_DB_URL = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@localhost:
 
 engine = create_engine(
     SQALCHEMY_DB_URL,
-    echo=True
+    # echo=True
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

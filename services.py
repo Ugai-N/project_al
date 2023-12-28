@@ -8,7 +8,7 @@ from sqlalchemy.sql.functions import count
 #     max_rating_obj = db.scalar(select(Problem).where(Problem.rating >= 800).order_by(Problem.rating.desc()))
 #     loop_num = (max_rating_obj.rating - 800) / 300
 #     if loop_num % 300 > 0:
-#         loop_num = round(loop_num % 300 + 1)
+#         loop_num = round(loop_num // 300 + 1)
 #     rating_level = 800
 #     # for i in range(1):
 #     for i in range(loop_num):
@@ -36,57 +36,6 @@ from sqlalchemy.sql.functions import count
 
 
     # те что с несколькими тагами - смотреть по каждому из тагов каких меньше чего контестов
-
-
-
-def get_contest_serv(db, problem):
-    if problem.contest_id is None:
-    # если таг один
-        print(len(problem.tags) == 1)
-        if len(problem.tags) == 1:
-            add_to_contest_serv(db, problem, problem.tags[0])
-
-    # десь еще бы разбить по группам рейтинга?
-
-    # если тег не один
-        if len(problem.tags) > 1: #else -пустфм вроде не может быть
-            min_popularity = 100
-            poor_tag = None
-            for tag in problem.tags:
-                all_pros = db.query(Problem).all().count()
-                all_tag_pros = db.query(Problem).filter(tag in Problem.tags).all().count()
-                popularity = all_tag_pros / all_pros * 100
-                if popularity < min_popularity:
-                    min_popularity = popularity
-                    poor_tag = tag
-            add_to_contest_serv(db, problem, poor_tag)
-
-            # min_contests_qty = 100000000000000000000000
-            # poor_tag = None
-            # for tag in tags_list:
-            #     tag_contests_qty = (db.query(Contest).filter(Contest.tag == tag & Contest.rating == rating)
-            #                          ).count()
-            #     if tag_contests_qty < min_contests_qty:
-            #         min_contests_qt = tag_contests_qty
-            #         poor_tag = tag
-            #         return add_to_contest(db, rating, poor_tag)
-
-def add_to_contest_serv(db, problem, tag):
-    print(problem)
-
-    all_matching_contests = (db.query(Contest)
-                            .filter(Contest.tag_id == tag.id)
-                             .filter(Contest.rating == problem.rating)
-                             .where(len(Contest.problems) < 10)
-                            ).all()
-    if all_matching_contests.count() > 0:
-    # choose any, get id, return contest_id
-        problem.contest_id = all_matching_contests.first()
-        db.commit()
-        # return contest_id
-    else:
-        Contest.add_to_contest(db, problem.rating, tag)
-        # call classmethod function of Contest -> initiate a new one, get id, return contest_id
 
 
 

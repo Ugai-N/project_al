@@ -3,7 +3,7 @@ from sqlalchemy import select
 from crud.contest import choose_tag_for_contest
 from crud.tag import get_tags_to_attach
 from models import Problem, ProblemTagAssociation
-from utils import get_solvedCount
+from services.services import get_solvedCount
 
 
 def search_problem_by_search_code(db, search_code: str) -> Problem | None:

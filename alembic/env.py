@@ -18,7 +18,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 from models import Base
-import db_settings
+from core import settings
 
 target_metadata = Base.metadata
 # target_metadata = None
@@ -27,7 +27,7 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-config.set_main_option('sqlalchemy.url', db_settings.SQALCHEMY_DB_URL)
+config.set_main_option('sqlalchemy.url', settings.SQALCHEMY_DB_URL)
 
 
 def run_migrations_offline() -> None:

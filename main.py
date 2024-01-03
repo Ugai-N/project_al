@@ -1,11 +1,26 @@
+import asyncio
+import logging
+
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+
+from API.API_manager import APIresponse
+from core.settings import SessionLocal, api_url
+from crud.problem import parser_handler
 from db_updater.tasks import testing_celery
+import os
+from aiogram import Bot
+from aiogram import Dispatcher
+from aiogram import types
+from aiogram.filters import CommandStart
+
+from core import settings
+
+from models import Contest, Problem
 
 
-# --> вынести в конфиги и env
-api_url = 'https://codeforces.com/api/problemset.problems'
+# def main():
 
-
-def main():
     # --> get json file from API or from file:
 
     # results = APIresponse().get_problems(api_url)
@@ -23,7 +38,7 @@ def main():
         # --> launch update of DB
         # parser_handler(db, results)
 
-    result = testing_celery.delay()
+    # result = testing_celery.delay()
     # print(result.get())
     # print(result.ready())
 
@@ -66,12 +81,33 @@ def main():
         #         print(f'@{pr}')
 
 # --> черновое - УДАЛИТЬ
-        # Problem().test_methond('dddd')
-
         # # pro = db.query(Problem).filter(Problem.id == 7).first() --> равнозначно строчке ниже
         # pro = db.scalar(select(Problem).where(Problem.id == 2534))   # type: Problem
         # handle_contest(db, pro)
+# if __name__ == '__main__':
+#     main()
 
+mybot = Bot(token=settings.TELEGRAM_TOKEN)
+dp = Dispatcher()
+
+
+@dp.message(CommandStart())
+async def handle_start(message: types.Message):
+    await message.answer(text=f'Hello, {message.from_user.full_name}!')
+
+
+@dp.message()
+async def echo_message(message: types.Message): #входящий аргумент - айди сообщения
+    # await message.reply(text=message.text) #отвечаем, в аргументы передаем текст самого изнач.сообщения
+    if message.text == '1':
+        await message.answer(text='1 - wait a sec')
+    else:
+        await message.answer(text='2 - wait a sec')
+
+
+async def main():
+    logging.basicConfig(level=logging.DEBUG)
+    await dp.start_polling(mybot)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

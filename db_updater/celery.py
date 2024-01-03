@@ -10,8 +10,8 @@ app.config_from_object('core.settings')
 app.conf.beat_schedule = {
     'update_db_every_hr': {
         'task': 'db_updater.tasks.testing_celery',
-        # 'schedule': timedelta(hours=1)
-        # 'schedule': crontab(minute=0, hour=0)
-        'schedule': crontab()
+        'schedule': timedelta(hours=1)
+        # 'schedule': crontab(minute=0)
+        # 'schedule': crontab()
     },
 }

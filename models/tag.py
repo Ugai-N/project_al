@@ -19,3 +19,6 @@ class Tag(Base):
 
     def __repr__(self):
         return f'{self.name} ({self.id})'
+
+    def __str__(self):
+        return f'{self.name}'

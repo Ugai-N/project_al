@@ -1,8 +1,10 @@
+from random import choice
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from core.settings import SessionLocal
-from models import Problem, ProblemTagAssociation, Contest
+from models import Problem, ProblemTagAssociation, Contest, Tag
 
 
 def get_rating_group(db, pro_rating: int) -> int:
@@ -15,7 +17,8 @@ def get_rating_group(db, pro_rating: int) -> int:
     else:
         rating_level = 800
         while True:
-            if rating_level <= pro_rating <= rating_level + 300:
+            if rating_level <= pro_rating <= rating_level + 300 - 1:
+            # if rating_level <= pro_rating <= rating_level + 300:
                 # pro_rating_level = f'{rating_level} - {rating_level + 300 - 1}'
                 pro_rating_level = rating_level
                 break
@@ -75,7 +78,7 @@ def add_problem_to_contest(db, db_problem: Problem, tag_assoc: ProblemTagAssocia
         if len([pro for pro in con.problems]) < 10:
             all_available_contests.append(con)
     if len(all_available_contests) != 0:
-        active_contest = all_available_contests[0]  # or random
+        active_contest = choice(all_available_contests) # random or all_available_contests[0]
         print(f'***** problem {db_problem} added to existing contest')
     else:
         active_contest = create_contest(db, db_problem, tag_assoc, len(all_matching_contests), db_problem_rating_level)
@@ -101,7 +104,7 @@ def create_contest(db, db_problem: Problem, tag_assoc: ProblemTagAssociation, pr
     return new_contest
 
 
-def find_all_contests_tags():
+def get_contests_info():
     with SessionLocal() as user_db:
         stmt = (
             select(Contest)
@@ -115,8 +118,67 @@ def find_all_contests_tags():
         for con in all_contests_with_problems:
             if len([pro for pro in con.problems]) == 10:
                 full_contests.append(con)
-        print(f'qty of ready contests: {len(full_contests)}')
+        # print(f'qty of ready contests: {len(full_contests)}')
         full_contest_tags = list(set([i.tag for i in full_contests]))
-        print(f'qty of available tags of ready contests: {len(full_contest_tags)}')
+        # print(f'qty of available tags of ready contests: {len(full_contest_tags)}')
         full_contest_rating_groups = list(set([i.rating for i in full_contests]))
         return full_contest_rating_groups, full_contest_tags, full_contests
+
+
+def find_contests_with_rating(rating):
+    with SessionLocal() as user_db:
+        stmt = (
+            select(Contest)
+            .options(
+                selectinload(Contest.problems),
+            )
+            .filter(Contest.rating == rating)
+        )
+        all_contests_with_this_rating = list(user_db.scalars(stmt))
+        # print(all_contests_with_this_rating)
+
+        full_contests = []
+        for con in all_contests_with_this_rating:
+            if len([pro for pro in con.problems]) == 10:
+                full_contests.append(con)
+
+        available_tags = []
+        for con in full_contests:
+            available_tags.append(con.tag)
+        # print(len(available_tags))
+        available_tags_set = list(set(available_tags))
+        # print(len(available_tags_set))
+        # print(f'available tags: {available_tags_set}')
+        return available_tags_set
+
+
+def find_contests_with_rating_and_tag(tag, rating):
+    with SessionLocal() as user_db:
+        stmt_tag = (
+            select(Tag)
+            .filter(Tag.name == tag)
+        )
+        tag_found = user_db.scalars(stmt_tag).one_or_none()
+
+        stmt = (
+            select(Contest)
+            .options(
+                selectinload(Contest.problems),
+                selectinload(Contest.tag)
+            )
+            .filter(Contest.rating == rating)
+            .filter(Contest.tag_id == tag_found.id)
+        )
+        all_contests_with_this_rating_and_tag = list(user_db.scalars(stmt))
+
+        full_contests = []
+        for con in all_contests_with_this_rating_and_tag:
+            if len([pro for pro in con.problems]) == 10:
+                full_contests.append(con)
+
+        chosen_contest = choice(full_contests)
+        problems = []
+        for pro in chosen_contest.problems:
+            problems.append(pro)
+        # print(problems)
+        return chosen_contest, problems, len(full_contests)

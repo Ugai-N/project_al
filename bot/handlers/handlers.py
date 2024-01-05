@@ -8,19 +8,7 @@ from crud.contest import get_contests_info, find_contests_with_rating, find_cont
 from crud.problem import search_problem_by_search_code
 
 router = Router()
-# @dp.message(CommandStart())
-# async def handle_start(message: types.Message):
-#     contests_data = get_contests_info()
-#
-#     contest_tags_list = contests_data[1]
-#     qty_of_contests = len(contests_data[2])
-#
-#     text = f"Hello, {message.from_user.full_name}!\n" \
-#            f"We have {qty_of_contests} contests in our database for {len(contest_tags_list)} topics\n" \
-#            f"Let's start!"
-#
-#     await message.answer(text=text)
-#     await choose_rating(message, contests_data)
+
 
 @router.message(CommandStart())
 async def handle_start(message: types.Message):
@@ -68,20 +56,6 @@ async def choose_rating(message: types.Message):
     await message.answer(
         "Choose the rating level of the problems to solve\n",
         reply_markup=builder.as_markup())
-
-
-# async def choose_rating(message: types.Message, contests_data):
-#     contest_rating_list = contests_data[0]
-#
-#     builder = InlineKeyboardBuilder()
-#     for rating in sorted(contest_rating_list):
-#         builder.button(text=f"{rating} - {rating + 300 - 1 if rating != 0 else 799}",
-#                        callback_data=f"rating:{rating}")
-#     builder.adjust(2, 2)
-#
-#     await message.answer(
-#         "Choose the rating level of the problems to solve\n",
-#         reply_markup=builder.as_markup())
 
 
 @router.callback_query(lambda call: call.data.startswith('rating'))
@@ -136,7 +110,7 @@ async def perform_searching(callback: CallbackQuery):
             db_data = search_problem_by_search_code(user_db, search_text)
             if db_data is not None:
                 problem = db_data[0]
-                text = f'<b>{problem}</b>\n' \
+                text = f'<b><i>{problem}</i></b>\n' \
                        f'<b>rating:</b> {problem.rating}\n' \
                        f'<b>times solved:</b> {problem.solvedCount}\n' \
                        f'<b>contest:</b> {db_data[1]}\n' \

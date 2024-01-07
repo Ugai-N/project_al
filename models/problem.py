@@ -15,7 +15,7 @@ class Problem(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(300))
-    rating: Mapped[Optional[int]]
+    rating: Mapped[int]
     tags: Mapped[List['ProblemTagAssociation']] = relationship(back_populates='problem')
     search_code: Mapped[str] = mapped_column(String(50), unique=True)
     solvedCount: Mapped[int] = mapped_column(Integer)

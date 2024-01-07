@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from crud.contest import choose_tag_for_contest
 from crud.tag import get_tags_to_attach
@@ -6,14 +7,20 @@ from models import Problem, ProblemTagAssociation
 from services.services import get_solvedCount
 
 
-def search_problem_by_search_code(db, search_code: str) -> Problem | None:
+def search_problem_by_search_code(db, search_code: str):
     """search a problem in DB"""
     stmt = (
         select(Problem)
+        .options(
+            selectinload(Problem.contest)
+        )
         .filter(Problem.search_code == search_code)
     )
     problem: Problem | None = db.execute(stmt).scalar_one_or_none()
-    return problem
+    if problem is not None:
+        return problem, problem.contest
+    else:
+        return problem
 
 
 def parser_handler(db, json_response) -> None:
@@ -30,7 +37,8 @@ def parser_handler(db, json_response) -> None:
         search_code: str = '-'.join([str(p['contestId']), p['index']])
         solvedCount: int = get_solvedCount(statistics, p['contestId'], p['index'])
         # tags_list = p['tags']
-        problem_from_db: Problem | None = search_problem_by_search_code(db, search_code)
+        problem_from_db: Problem | None = search_problem_by_search_code(db, search_code)[
+            0] if search_problem_by_search_code(db, search_code) is not None else None
 
         if problem_from_db is None:
             print('\n\n--->>> Problem NOT FOUND. Creating a new one ...')

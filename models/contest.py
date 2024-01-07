@@ -15,7 +15,7 @@ class Contest(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(300))
-    rating: Mapped[Optional[str]]
+    rating: Mapped[int]
     problems: Mapped[List['Problem']] = relationship(back_populates='contest')
     tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id"))
     tag: Mapped['Tag'] = relationship(back_populates="contests")

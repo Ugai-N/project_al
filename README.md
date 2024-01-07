@@ -20,7 +20,7 @@
   frequency of tag's usage (less popular tags are chosen for the contests in order to provide more diverse contest
   options
   for the user)
-* Each problem can be used ony in ONE contest
+* Each problem can be used only in ONE contest
 * Database update performs a search of a problem via search code: if the problem is found, its name and times it was
   solved are updated. If the problem is not found, a new problem in created in database
 
@@ -28,7 +28,9 @@
 ## Further steps:
 * Implement logging
 * Implement schema usage in DB
+* Make async working DB
 * Implement callback factory within Telegram bot
+* Wrap in Docker
 
 
 # Stack:
@@ -42,13 +44,18 @@
 * Aiogram
 * Async
 
-## App run instructions:
+## App instructions:
+
+
+### To run the database update (it will be updated hourly):
+
+* create dabatbase
+* make migrations: alembic revision --autogenerate -m "Init"
+* migrate: alembic upgrade head
+* run celery: python.exe -m celery -A tasks worker -l INFO -P eventlet
+* run celery beat: celery -A tasks beat --loglevel=info 
+##### Notes: first db update will take around 30-40 minutes to fill in the initial data. Further updates take seconds to perform 
 
 ### To run the Telegram bot:
 
 * run: python main.py
-
-### To run the database update (it will be updated hourly):
-
-* run celery: python.exe -m celery -A tasks worker -l INFO -P eventlet
-* run celery beat: celery -A tasks beat --loglevel=info

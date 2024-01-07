@@ -25,10 +25,12 @@ enable_utc = False
 HOST_DB = os.getenv('HOST_DB')
 PORT = os.getenv('PORT')
 POSTGRES_DB = os.getenv('POSTGRES_DB')
+TEST_DB = os.getenv('TEST_DB')
 POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD')
 POSTGRES_USER = os.getenv('POSTGRES_USER')
 
 SQALCHEMY_DB_URL = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{HOST_DB}:{PORT}/{POSTGRES_DB}'
+TEST_DB_URL = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{HOST_DB}:{PORT}/{TEST_DB}'
 
 engine = create_engine(
     SQALCHEMY_DB_URL,

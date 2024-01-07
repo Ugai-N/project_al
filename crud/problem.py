@@ -37,7 +37,8 @@ def parser_handler(db, json_response) -> None:
         search_code: str = '-'.join([str(p['contestId']), p['index']])
         solvedCount: int = get_solvedCount(statistics, p['contestId'], p['index'])
         # tags_list = p['tags']
-        problem_from_db: Problem | None = search_problem_by_search_code(db, search_code)[0]
+        problem_from_db: Problem | None = search_problem_by_search_code(db, search_code)[
+            0] if search_problem_by_search_code(db, search_code) is not None else None
 
         if problem_from_db is None:
             print('\n\n--->>> Problem NOT FOUND. Creating a new one ...')

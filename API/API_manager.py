@@ -1,6 +1,5 @@
 from json import JSONDecodeError
 
-import aiohttp
 import requests
 
 
@@ -10,6 +9,7 @@ class APIError(Exception):
 
 class APIresponse:
     """class for handling API response"""
+
     def _handle_response(self, api_response):
         """check the status of the request"""
         print(api_response.status_code)
@@ -17,8 +17,7 @@ class APIresponse:
             raise APIError
         try:
             json_response = api_response.json()
-            # print(type(json_response))
-            return api_response.json()
+            return json_response
         except JSONDecodeError:
             raise APIError
 

@@ -11,6 +11,5 @@ app.conf.beat_schedule = {
         'task': 'db_updater.tasks.update_db',
         'schedule': timedelta(hours=1)
         # 'schedule': crontab(minute=0)
-        # 'schedule': crontab()
     },
 }

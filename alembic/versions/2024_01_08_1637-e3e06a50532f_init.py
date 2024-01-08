@@ -1,8 +1,8 @@
-"""Added2
+"""INIT
 
-Revision ID: fe568c5ff55d
-Revises: c45bc6bd8e49
-Create Date: 2023-12-28 18:45:06.762210
+Revision ID: e3e06a50532f
+Revises: 
+Create Date: 2024-01-08 16:37:51.783969
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = "fe568c5ff55d"
-down_revision: Union[str, None] = "c45bc6bd8e49"
+revision: str = "e3e06a50532f"
+down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -32,7 +32,7 @@ def upgrade() -> None:
         "contests",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=300), nullable=False),
-        sa.Column("rating", sa.String(), nullable=True),
+        sa.Column("rating", sa.Integer(), nullable=False),
         sa.Column("tag_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(
             ["tag_id"],
@@ -45,7 +45,7 @@ def upgrade() -> None:
         "problems",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=300), nullable=False),
-        sa.Column("rating", sa.Integer(), nullable=True),
+        sa.Column("rating", sa.Integer(), nullable=False),
         sa.Column("search_code", sa.String(length=50), nullable=False),
         sa.Column("solvedCount", sa.Integer(), nullable=False),
         sa.Column("contest_id", sa.Integer(), nullable=True),

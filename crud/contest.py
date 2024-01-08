@@ -17,7 +17,7 @@ def choose_tag_for_contest(db, db_problem: Problem) -> None:
             chosen_tag = db_problem.tags[0]
             print(f'***** only one tag: tag {chosen_tag.tag.name}')
         else:
-            """if Problem has more than 1 tag -> less popular tag is chosen 
+            """if Problem has more than 1 tag -> less popular tag is chosen
             (basing of the number of times every tag is mentioned in problems)"""
             min_tag_problems = 10000000000000000000000000000000000000000
             for tag_association in db_problem.tags:  # type: ProblemTagAssociation

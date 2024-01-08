@@ -49,11 +49,10 @@
 
 ### To run the database update (it will be updated hourly):
 
-* create dabatbase
-* make migrations: alembic revision --autogenerate -m "Init"
+* create database
 * migrate: alembic upgrade head
-* run celery: python.exe -m celery -A tasks worker -l INFO -P eventlet
-* run celery beat: celery -A tasks beat --loglevel=info 
+* run celery: python.exe -m celery -A db_updater worker -l INFO -P eventlet
+* run celery beat: celery -A db_updater beat --loglevel=info 
 ##### Notes: first db update will take around 30-40 minutes to fill in the initial data. Further updates take seconds to perform 
 
 ### To run the Telegram bot:

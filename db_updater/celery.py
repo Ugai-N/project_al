@@ -1,7 +1,6 @@
 from datetime import timedelta
 
 from celery import Celery
-from celery.schedules import crontab
 
 app = Celery('db_updater', include=['db_updater.tasks'])
 app.config_from_object('core.settings')

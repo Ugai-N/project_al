@@ -28,17 +28,17 @@ async def handle_start(message: types.Message):
 
 @router.message(Command('help'))
 async def handle_help(message: types.Message):
-    text = f"I am a bot, that will provide you the info on 10 problems from CodeForces, " \
-           f"grouped by the rating and topics upon your request\n\n" \
-           f"Send any command from below:\n\n" \
-           f"/choose - to choose the rating and tag for a contest of 10 problems\n" \
-           f"/find - find a problem via search code\n"
+    text = "I am a bot, that will provide you the info on 10 problems from CodeForces, " \
+           "grouped by the rating and topics upon your request\n\n" \
+           "Send any command from below:\n\n" \
+           "/choose - to choose the rating and tag for a contest of 10 problems\n" \
+           "/find - find a problem via search code\n"
     await message.answer(text=text)
 
 
 @router.message(Command('find'))
 async def handle_find(message: types.Message):
-    text = f"Please enter the search code of the problem, eg: 1912-D"
+    text = "Please enter the search code of the problem, eg: 1912-D"
     await message.answer(text=text)
 
 
@@ -117,21 +117,21 @@ async def perform_searching(callback: CallbackQuery):
                        f'<b>tags:</b>'
                 tags_text = "\n".join([f'   -- {tag.tag}' for tag in problem.tags])
             else:
-                text = f'Sorry! There is no such problem in our data base\n\n' \
-                       f'You can always check the available commands here --> /help'
+                text = 'Sorry! There is no such problem in our data base\n\n' \
+                       'You can always check the available commands here --> /help'
                 tags_text = ''
             await callback.message.answer(text='\n'.join([text, tags_text]))
     else:
         await callback.message.answer(
-            text=f'OK, but just to remind you:\n'
-                 f'You can always check the available commands here --> /help')
+            text='OK, but just to remind you:\n'
+                 'You can always check the available commands here --> /help')
 
 
 @router.message()
 async def start_searching(message: types.Message):
-    yes_button = InlineKeyboardButton(text=f"YES",
+    yes_button = InlineKeyboardButton(text="YES",
                                       callback_data=f"search:YES:{message.text}")
-    no_button = InlineKeyboardButton(text=f"NO",
+    no_button = InlineKeyboardButton(text="NO",
                                      callback_data=f"search:NO:{message.text}")
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[yes_button], [no_button]])
     if message.text:

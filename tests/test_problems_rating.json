@@ -1,0 +1,24 @@
+{
+  "status": "OK",
+  "result": {
+    "problems": [
+      {
+        "contestId": 12,
+        "index": "A",
+        "name": "TEST12",
+        "type": "PROGRAMMING",
+        "rating": 1100,
+        "tags": [
+          "tag11"
+        ]
+      }
+    ],
+    "problemStatistics": [
+      {
+        "contestId": 12,
+        "index": "A",
+        "solvedCount": 11
+      }
+    ]
+  }
+}

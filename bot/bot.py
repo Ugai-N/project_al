@@ -1,19 +1,16 @@
-import asyncio
+import logging
 
-from poller import Poller
-from worker import Worker
+from aiogram import Bot, Dispatcher
+
+from bot.handlers.handlers import router
+from core import settings
 
 
-class Bot:
-    def __init__(self, token: str, workers_qty: int):
-        self.queue = asyncio.Queue()
-        self.poller = Poller(token, self.queue)
-        self.worker = Worker(token, self.queue, workers_qty)
+async def start_bot():
+    """Bot entry point"""
+    mybot = Bot(token=settings.TELEGRAM_TOKEN, parse_mode='HTML')
+    dp = Dispatcher()
+    dp.include_router(router)
 
-    async def start(self):
-        await self.poller.start()
-        await self.worker.start()
-
-    async def stop(self):
-        await self.poller.stop()
-        await self.worker.stop()
+    logging.basicConfig(level=logging.DEBUG)
+    await dp.start_polling(mybot)

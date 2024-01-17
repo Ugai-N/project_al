@@ -1,0 +1,54 @@
+{
+  "status": "OK",
+  "result": {
+    "problems": [
+      {
+        "contestId": 11111111111,
+        "index": "A",
+        "name": "TEST1_upd",
+        "type": "PROGRAMMING",
+        "tags": [
+          "tag1"
+        ]
+      },
+      {
+        "contestId": 222222222222,
+        "index": "B",
+        "name": "TEST2",
+        "type": "PROGRAMMING",
+        "tags": [
+          "tag1"
+        ]
+      },
+      {
+        "contestId": 33333333333,
+        "index": "C",
+        "name": "TEST3",
+        "type": "PROGRAMMING",
+        "rating": 800,
+        "tags": [
+          "tag1",
+          "tag2",
+          "tag3"
+        ]
+      }
+    ],
+    "problemStatistics": [
+      {
+        "contestId": 11111111111,
+        "index": "A",
+        "solvedCount": 11
+      },
+      {
+        "contestId": 222222222222,
+        "index": "B",
+        "solvedCount": 2222
+      },
+      {
+        "contestId": 33333333333,
+        "index": "C",
+        "solvedCount": 33
+      }
+    ]
+  }
+}
